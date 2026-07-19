@@ -4,7 +4,9 @@ import { Mail, Phone, Linkedin, Download, Send, CheckCircle2 } from 'lucide-reac
 export default function Contact() {
   const [form, setForm] = useState({ name: '', email: '', company: '', subject: '', message: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -19,16 +21,56 @@ export default function Contact() {
     return newErrors;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-    } else {
-      setErrors({});
-      setSubmitted(true);
-      setForm({ name: '', email: '', company: '', subject: '', message: '' });
-      setTimeout(() => setSubmitted(false), 5000);
+      return;
+    }
+
+    setErrors({});
+    setIsSubmitting(true);
+    setSubmitSuccess(false);
+    setSubmitError('');
+
+    const ACCESS_KEY = (import.meta as any).env.VITE_WEB3FORMS_ACCESS_KEY || "YOUR_ACCESS_KEY_HERE";
+
+    if (ACCESS_KEY === "YOUR_ACCESS_KEY_HERE") {
+      setSubmitError("Form routing configuration is required. Please set VITE_WEB3FORMS_ACCESS_KEY or update Contact.tsx with your free access key.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          access_key: ACCESS_KEY,
+          name: form.name,
+          email: form.email,
+          company: form.company,
+          subject: form.subject,
+          message: form.message,
+          from_name: "BI Portfolio Contact Form"
+        })
+      });
+
+      const result = await response.json();
+      if (response.status === 200 || result.success) {
+        setSubmitSuccess(true);
+        setForm({ name: '', email: '', company: '', subject: '', message: '' });
+      } else {
+        setSubmitError(result.message || 'Submission failed. Please try again.');
+      }
+    } catch (err) {
+      setSubmitError('Network error. Please check your connection and try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -124,7 +166,7 @@ export default function Contact() {
               Send a Message
             </h3>
 
-            {submitted && (
+            {submitSuccess && (
               <div 
                 className="mb-6 p-4 bg-teal-50 border border-teal-200 text-teal-700 text-xs rounded-lg flex items-start gap-2.5 animate-in fade-in duration-300"
                 role="alert"
@@ -132,6 +174,22 @@ export default function Contact() {
                 <CheckCircle2 className="h-5 w-5 shrink-0 mt-0.5" />
                 <div>
                   <span className="font-extrabold">Form Submitted Successfully!</span> Thank you for reaching out. I will respond to your message shortly.
+                </div>
+              </div>
+            )}
+
+            {submitError && (
+              <div 
+                className="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-lg flex items-start gap-2.5 animate-in fade-in duration-300 shadow-sm"
+                role="alert"
+              >
+                <div>
+                  <span className="font-extrabold">Submission Alert:</span> {submitError}
+                  {submitError.includes('routing configuration') && (
+                    <span className="block mt-1 bg-white/40 p-2 rounded text-[11px] text-slate-800 leading-normal border border-rose-200/50">
+                      To receive emails directly, visit <strong><a href="https://web3forms.com" target="_blank" rel="noreferrer" className="underline hover:text-teal-600">web3forms.com</a></strong>, submit your email address to get a free access key, and copy it into <code>Contact.tsx</code> or your environment variables.
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -231,10 +289,11 @@ export default function Contact() {
               <div className="pt-2 text-right">
                 <button
                   type="submit"
-                  className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg text-sm font-bold bg-teal-500 text-white hover:bg-teal-600 transition-colors cursor-pointer"
+                  disabled={isSubmitting}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg text-sm font-bold bg-teal-500 text-white hover:bg-teal-600 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed transition-colors cursor-pointer"
                 >
-                  <Send className="h-4 w-4" />
-                  Send Message
+                  <Send className="h-4 w-4 animate-pulse" />
+                  {isSubmitting ? 'Sending...' : 'Send Message'}
                 </button>
               </div>
             </form>
