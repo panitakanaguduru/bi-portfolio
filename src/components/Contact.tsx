@@ -34,9 +34,9 @@ export default function Contact() {
     setSubmitSuccess(false);
     setSubmitError('');
 
-    const ACCESS_KEY = (import.meta as any).env.VITE_WEB3FORMS_ACCESS_KEY || "YOUR_ACCESS_KEY_HERE";
+    const ACCESS_KEY = (import.meta as any).env.VITE_WEB3FORMS_ACCESS_KEY || "fe62a43c-87c7-4aec-888c-3aa02ae5d53e";
 
-    if (ACCESS_KEY === "YOUR_ACCESS_KEY_HERE") {
+    if (ACCESS_KEY === "YOUR_ACCESS_KEY_HERE" || !ACCESS_KEY) {
       setSubmitError("Form routing configuration is required. Please set VITE_WEB3FORMS_ACCESS_KEY or update Contact.tsx with your free access key.");
       setIsSubmitting(false);
       return;
